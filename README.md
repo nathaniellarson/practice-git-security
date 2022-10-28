@@ -60,3 +60,15 @@ These instructions closely follow those posted [here](https://docs.github.com/en
 5. Once we run this, let's make sure that the logs look correct. If we run `git log --pretty=format:"%h%x09%an%x09%ad%x09%s"`, most of the history should be the same, with the notable exception of our `not suspicious` commit. It's gone!
 6. Let's run `gitleaks detect` to make sure. It should pass.
 7. Now that we're sure that we're good. Let's run `git push origin --force --all`. This will update the remote repository. We're all fixed!
+
+## Preventative Measures
+That's nerve-wracking, and can be a bit of work! How can we just prevent these things from happening? There are many ways. Some of the most effective ways to prevent leaking of secrets is to not have them in the repository at all: (1) put secrets in a location outside of the repo, (2) use environment variables to export secrets, and then read them from those variables in the code, or (3) use a secrets management system. 
+
+But for this small demonstration, let's say you want a `.env` file in your repo:
+
+1. Let's prevent that specific case of secret-committing from happening. Create a `.gitignore` with the contents, which will ignore any file with the `.env` extension:
+```
+*.env
+```
+2. Actually, we can do even better than that. GitHub maintains a list of `.gitignore` templates for dozens of languages [here](https://github.com/github/gitignore/blob/main). Let's just choose the Python one [here](https://github.com/github/gitignore/blob/main/Python.gitignore). Copy the contents of that into our `.gitignore` 
+3. Create a file called `bad.env`. Run `git status`. Notice how that file doesn't even show up? The power of `.gitignore`. You're safe, *as long as the `.gitignore` ignores this file!
