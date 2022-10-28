@@ -8,7 +8,7 @@ This repo is a quick tutorial on how to scan a repo for secrets, remove them fro
 3. Make sure that you follow the instructions to install `pre-commit` (`pip install pre-commit`), and run `pre-commit autoupdate` and `pre-commit install`
 4. Think about what we want to catch. GitLeaks has an impressive list of [rules](https://github.com/zricethezav/gitleaks/blob/master/config/gitleaks.toml) that it uses to identify data it strongly suspects are secrets. It will catch secrets that follow the format of common secrets like AWS secret keys and GCP API keys, or even obscure secrets like "Etsy Access Tokens." Is there something that we want to add? (no action)
 5. We will add one rule, to catch when a file contains the exact string `PASSWORD=` followed by anything. At the root of this repo, create a file called `.gitleaks.toml` with the following content:
-```
+```pre
 title = "Gitleaks Custom Rules"
 
 [extend]
@@ -47,3 +47,16 @@ WRN leaks found: 1
 13. Did you get an error for the `bad.env` file? It has broken our custom rule, as well as one of the default rules--but it is useful to note we only see the first (custom) rule listed in the warning. Expected output should look something like the following:
 ![Error using gitleaks](docs/error_gitleaks.png)
 14. On to removing that secret that some bumbling idiot committed!!
+
+## Removing Sensitive Information: Filter-Repo
+*Note: Using Filter-Repo may not remove all instances of a secret. For instance, you're removing it from your fork of my repo, but the secret it still in mine! Be cognizant of this when using this in the real world*
+
+These instructions closely follow those posted [here](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository) by GitHub.
+1. Install [git-filter-repo](https://github.com/newren/git-filter-repo). On MacOS: `brew install git-filter-repo`.
+2. Navigate to our repo root `cd /path/to/this/repo` (you're probably already there)
+3. Identify the file we want to filter OUT: `./bad.env`
+4. Check our history for the commit that we expect to filter OUT: `git log --pretty=format:"%h%x09%an%x09%ad%x09%s"`. The description is `not suspicious`.
+4. Now for the powerful function: `git filter-repo --invert-paths --path bad.env` (*this is an intense function, double-check that your command is correct before running*)
+5. Once we run this, let's make sure that the logs look correct. If we run `git log --pretty=format:"%h%x09%an%x09%ad%x09%s"`, most of the history should be the same, with the notable exception of our `not suspicious` commit. It's gone!
+6. Let's run `gitleaks detect` to make sure. It should pass.
+7. Now that we're sure that we're good. Let's run `git push origin --force --all`. This will update the remote repository. We're all fixed!
