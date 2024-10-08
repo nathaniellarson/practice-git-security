@@ -10,6 +10,7 @@ Any step that has "(no action)" at the end indicates that no action is required 
 3. Make sure that you follow the instructions to [install](https://pre-commit.com/#install) `pre-commit` (`pip install pre-commit` or `brew install pre-commit`) and run `pre-commit autoupdate`
 4. In a terminal, navigate to the base of the repo `cd /path/to/this/repo`. 
 5. Run `pre-commit install`. This will install the `gitLeaks` hook, because we have it specified in the file `.pre-commit-config.yaml`.
+6. If your version updates, do `git add .pre-commit-config.yaml` and `git commit -m "gitLeaks version update"` to make sure the staging area is clean.
 6. Think about what we want to catch. GitLeaks has an impressive list of [rules](https://github.com/zricethezav/gitleaks/blob/master/config/gitleaks.toml) that it uses to identify data it strongly suspects are secrets. It will catch secrets that follow the format of common secrets like AWS secret keys and GCP API keys, or even obscure secrets like "Etsy Access Tokens." You can also add custom formats. (no action)
 7. We could run a check right now against the default rules, but we will add one rule first to catch when a file contains the exact string `PASSWORD=` followed by anything. At the root of this repo, create a file called `.gitleaks.toml` with the following content:
 ```pre
@@ -33,9 +34,37 @@ paths = [
 8. Now, with our default and custom rules set up, let's test that we can't commit something bad. Create a file called `password.txt` with the following content:
 ```AWS_KEY=AKIAIMNOJVGFDXXXE4OA```
 9. Add the file `git add password.txt`
-10. Commit it: `git commit -m "uh oh, secret here"`. If you get an error, congratulations! You've blocked yourself from committing a secret!
+10. Commit it: `git commit -m "uh oh, secret here"`. You should get an output like the following and NOT commit:
+```
+$ git commit -m "uh oh, secret here"
+[INFO] Installing environment for https://github.com/zricethezav/gitleaks.
+[INFO] Once installed this environment will be reused.
+[INFO] This may take a few minutes...
+Detect hardcoded secrets.................................................Failed
+- hook id: gitleaks
+- exit code: 1
+
+○
+    │╲
+    │ ○
+    ○ ░
+    ░    gitleaks
+
+Finding:     AWS_KEY=REDACTED
+Secret:      REDACTED
+RuleID:      aws-access-token
+Entropy:     3.646439
+File:        password.txt
+Line:        1
+Fingerprint: password.txt:aws-access-token:1
+
+11:44AM INF 1 commits scanned.
+11:44AM INF scan completed in 15.8ms
+11:44AM WRN leaks found: 1
+```
+10. If you get an error, congratulations! You've blocked yourself from committing a secret! (no action)
 11. Yeah, let's just delete that `password.txt`. We don't want that anymore.
-12. Let's direct our attention to the repo and our history. If you look at our current files, we don't see anything that raises concern. It's just this `README.md`, `.pre-commit-config.yaml`, a `docs` folder with images, and a `.gitleaks.toml` you created. But anything can happen in our history. (no action)
+12. Let's direct our attention to the repo and our history. If you look at our current files, we don't see anything that raises concern. It's just this `README.md`, `.pre-commit-config.yaml`, and a `.gitleaks.toml` you created. But BEWARE! _Anything_ could be in our history. (no action)
 13. Run `git log --pretty=format:"%h%x09%an%x09%ad%x09%s"` (You can also run `git log`, but this will just be longer output, and we want something short and pretty). It should look something like the following, perhaps longer:
 ```
 e9e8a60 Nathaniel Larson        Wed Oct 11 23:07:04 2023 -0500  gitleaks update install and wording
@@ -51,13 +80,86 @@ d18cd01 Nathaniel Larson        Fri Oct 28 02:48:13 2022 -0500  not suspicious
 67f13d5 Nathaniel Larson        Fri Oct 28 00:34:54 2022 -0500  step 1 added
 ca2dbf1 Nathaniel Larson        Fri Oct 28 00:33:55 2022 -0500  init README.md
 ```
-14. Nothing suspicious there, right? Just kidding. A couple of those commits may contain a secret. We will use the `detect` command: `gitleaks detect`. It should give us a warning ("WRN"):
+Note: Click `q` to exit the log
+
+14. Nothing suspicious there, right? Just kidding. A couple of those commits may contain a secret. We will use the `detect` command. Run `gitleaks detect`. It should give us a warning ("WRN"):
 ```
-WRN leaks found: 3
+$ gitleaks detect
+
+    ○
+    │╲
+    │ ○
+    ○ ░
+    ░    gitleaks
+
+11:50AM INF 15 commits scanned.
+11:50AM INF scan completed in 67.6ms
+11:50AM WRN leaks found: 4
 ```
 15. Re-run, this time with the `-v` flag for a verbose output: `gitleaks detect -v`
-16. Did you get an error for the `bad.env` file? It has broken our custom rule, as well as one of the default rules--but it is useful to note we only see the first (custom) rule listed in the warning. Expected output should look something like the following:
-![Error using gitleaks](docs/error_gitleaks.png)
+16. Did you get an error for the `bad.env` file? It has broken our custom rule, as well as one of the default rules. Expected output should look something like the following:
+```
+$ gitleaks detect -v
+
+    ○
+    │╲
+    │ ○
+    ○ ░
+    ░    gitleaks
+
+Finding:     PASSWORD=KO6JKJJ
+Secret:      PASSWORD=KO6JKJ
+RuleID:      exclude PASSWORD=
+Entropy:     3.373557
+File:        bad.env
+Line:        1
+Commit:      88d6706ff229c1b016fb4496d36edd025b35b918
+Author:      Nathaniel Larson
+Email:       nathaniellarson@users.noreply.github.com
+Date:        2024-10-08T15:14:39Z
+Fingerprint: 88d6706ff229c1b016fb4496d36edd025b35b918:bad.env:exclude PASSWORD=:1
+
+Finding:     PASSWORD=EVU7566
+Secret:      PASSWORD=EVU756
+RuleID:      exclude PASSWORD=
+Entropy:     3.773557
+File:        bad.env
+Line:        1
+Commit:      e016876278b5f459896cbd052e9332d22616cde1
+Author:      Nathaniel Larson
+Email:       nathaniellarson@users.noreply.github.com
+Date:        2023-10-12T03:54:53Z
+Fingerprint: e016876278b5f459896cbd052e9332d22616cde1:bad.env:exclude PASSWORD=:1
+
+Finding:     ...=55300
+FAKE_AWS_KEY=AKIAIMNOJVGFDXXXE4OAA
+Secret:      AKIAIMNOJVGFDXXXE4OA
+RuleID:      aws-access-token
+Entropy:     3.646439
+File:        bad.env
+Line:        2
+Commit:      d18cd01613d38d197cdaed009b5e008107b13f6a
+Author:      Nathaniel Larson
+Email:       nathaniellarson@users.noreply.github.com
+Date:        2022-10-28T07:48:13Z
+Fingerprint: d18cd01613d38d197cdaed009b5e008107b13f6a:bad.env:aws-access-token:2
+
+Finding:     PASSWORD=553000
+Secret:      PASSWORD=55300
+RuleID:      exclude PASSWORD=
+Entropy:     3.378783
+File:        bad.env
+Line:        1
+Commit:      d18cd01613d38d197cdaed009b5e008107b13f6a
+Author:      Nathaniel Larson
+Email:       nathaniellarson@users.noreply.github.com
+Date:        2022-10-28T07:48:13Z
+Fingerprint: d18cd01613d38d197cdaed009b5e008107b13f6a:bad.env:exclude PASSWORD=:1
+
+11:52AM INF 15 commits scanned.
+11:52AM INF scan completed in 69.7ms
+11:52AM WRN leaks found: 4
+```
 17. What's next? Removing that secret that some bumbling idiot committed!!
 
 ## Removing Sensitive Information: BFG
