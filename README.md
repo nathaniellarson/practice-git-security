@@ -9,7 +9,7 @@ Any step that has "(no action)" at the end indicates that no action is required 
 2. We're going to scan our repo with `gitLeaks` (though there are [many options](https://spectralops.io/blog/top-9-git-secret-scanning-tools/)). Follow the directions [here](https://github.com/zricethezav/gitleaks) to install it.
 3. Make sure that you follow the instructions to [install](https://pre-commit.com/#install) `pre-commit` (`pip install pre-commit` or `brew install pre-commit`) and run `pre-commit autoupdate`
 4. In a terminal, navigate to the base of the repo `cd /path/to/this/repo`. 
-5. Run `pre-commit install`
+5. Run `pre-commit install`. This will install the `gitLeaks` hook, because we have it specified in the file `.pre-commit-config.yaml`.
 6. Think about what we want to catch. GitLeaks has an impressive list of [rules](https://github.com/zricethezav/gitleaks/blob/master/config/gitleaks.toml) that it uses to identify data it strongly suspects are secrets. It will catch secrets that follow the format of common secrets like AWS secret keys and GCP API keys, or even obscure secrets like "Etsy Access Tokens." You can also add custom formats. (no action)
 7. We could run a check right now against the default rules, but we will add one rule first to catch when a file contains the exact string `PASSWORD=` followed by anything. At the root of this repo, create a file called `.gitleaks.toml` with the following content:
 ```pre
