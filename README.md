@@ -67,6 +67,14 @@ Fingerprint: password.txt:aws-access-token:1
 12. Let's direct our attention to the repo and our history. If you look at our current files, we don't see anything that raises concern. It's just this `README.md`, `.pre-commit-config.yaml`, and a `.gitleaks.toml` you created. But BEWARE! _Anything_ could be in our history. (no action)
 13. Run `git log --pretty=format:"%h%x09%an%x09%ad%x09%s"` (You can also run `git log`, but this will just be longer output, and we want something short and pretty). It should look something like the following, perhaps longer:
 ```
+4cab3ae Nathaniel Larson        Tue Oct 8 11:56:43 2024 -0400   update GitLeaks README section
+befcdeb Nathaniel Larson        Tue Oct 8 11:35:55 2024 -0400   new gitLeaks version
+72d2bfe Nathaniel Larson        Tue Oct 8 11:17:23 2024 -0400   README tweak
+bd300a4 Nathaniel Larson        Tue Oct 8 11:15:02 2024 -0400   scratch that
+88d6706 Nathaniel Larson        Tue Oct 8 11:14:39 2024 -0400   super not sus 2024
+810d24f Nathaniel               Thu Oct 12 00:05:41 2023 -0500  Merge pull request #1 from ndlarso/main
+3372f89 Nathaniel Larson        Wed Oct 11 23:44:22 2023 -0500  readme instruction updates
+cc84bc0 Nathaniel Larson        Wed Oct 11 23:43:05 2023 -0500  update gitleaks photo
 e9e8a60 Nathaniel Larson        Wed Oct 11 23:07:04 2023 -0500  gitleaks update install and wording
 ffc33c7 Nathaniel Larson        Wed Oct 11 22:55:40 2023 -0500  delete bad.env
 e016876 Nathaniel Larson        Wed Oct 11 22:54:53 2023 -0500  not supicious 2023
@@ -160,6 +168,7 @@ Fingerprint: d18cd01613d38d197cdaed009b5e008107b13f6a:bad.env:exclude PASSWORD=:
 11:52AM INF scan completed in 69.7ms
 11:52AM WRN leaks found: 4
 ```
+16. We can inspect these commits more closely to make sure there's nothing we are missing. Run `git show <commit-id>` (e.g. `git show 88d6706ff229c1b016fb4496d36edd025b35b918` or even shorter `git show 88d6706`) and look at the changes added to the file. You can also do this from the GitHub UI.
 17. What's next? Removing that secret that some bumbling idiot committed!!
 
 ## Removing Sensitive Information: BFG
@@ -169,11 +178,26 @@ These instructions closely follow those posted [here](https://docs.github.com/en
 1. Install [bfg](https://rtyley.github.io/bfg-repo-cleaner/). On MacOS: `brew install bfg`.
 2. Navigate to our repo root `cd /path/to/this/repo` (you're probably already there)
 3. Identify the file we want to filter OUT: `bad.env`. We can either remove this file completely (using the `--delete-files` flag) or replace all the text of particular files (using the `--replace-text` flag). We will remove `bad.env` completely.
-4. In this case, we will check our history for the commit(s) that we expect to filter OUT: `git log --pretty=format:"%h%x09%an%x09%ad%x09%s"`. The descriptions of the two commits are `not suspicious` and  `not suspicious 2023`. We expect not to see these commit after the filter since they only involve adding or modifying `bad.env`.
+4. In this case, we will check our history for the commit(s) that we expect to filter OUT: `git log --pretty=format:"%h%x09%an%x09%ad%x09%s"`. The descriptions of the three commits involving `bad.env` are `not suspicious`,  `not suspicious 2023`, and `super not sus 2024`. 
 4. Now for the powerful function: `bfg --delete-files bad.env` (*this is an intense function, double-check that your command is correct before running*)
-5. Once we run this, let's make sure that the logs look correct. If we run `git log --pretty=format:"%h%x09%an%x09%ad%x09%s"`, most of the history should be the same, with the notable exception of our `not suspicious` and `not suspicious 2023` commits. If you look closely at our history, `bad.env` is gone!
+5. Once we run this, let's make sure that the logs look correct. If we run `git log --pretty=format:"%h%x09%an%x09%ad%x09%s"`, most of the history should be the same, with the notable exception of our previously mentioned commits. Run `git show 88d6706`, and notice that there are no changes in the commit anymore! It's simply empty, because before it was only adding `bad.env`. If you do the same with the other two commits, you'll see `bad.env` doesn't show up at all anymore!
 6. Let's run `gitleaks detect` to make sure. It should pass.
+```
+$ gitleaks detect
+
+    ○
+    │╲
+    │ ○
+    ○ ░
+    ░    gitleaks
+
+12:36PM INF 12 commits scanned.
+12:36PM INF scan completed in 65.8ms
+12:36PM INF no leaks found
+```
+6. STOP. In a real world scenario, do extensive testing to ensure that your repo is how you want it to be. Then continue (no action)
 7. Now that we're sure that we're good. Let's run `git push --force`. This will update the remote repository. We're all fixed!
+8. Feel free to go to your fork of the repo to see that `bad.env` is not in the remote history. NOTE: in a real-world scenario, make sure that all contributors to the project pull fresh versions of the repo and delete old repositories.
 
 ## Preventative Measures
 That's nerve-wracking, and can be a bit of work! How can we just prevent these things from happening? There are many ways. Some of the most effective ways to prevent leaking of secrets is to not have them in the repository at all: 
